@@ -1,29 +1,74 @@
-# API de Películas con Auth0
+# API CineApp
 
-Esta es una API REST para gestionar películas con autenticación y autorización usando Auth0. El sistema soporta dos tipos de usuarios: **usuarios normales** y **administradores**.
+---
+
+## 📛 Nombre del Proyecto
+
+API de Películas con Auth0
+
+## 👥 Integrantes del Grupo
+
+- Joaquín Flores Fiorenza
+
+## 📋 Requisitos para su Ejecución
+
+- Java 17 o superior
+- Maven 3.8+
+- Cuenta en Auth0 y aplicación configurada
+- Acceso a Internet
+
+## ⚙️ Instrucciones de Instalación y Ejecución
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone <URL_DEL_REPOSITORIO>
+   cd auth0demo
+   ```
+2. **Configurar Auth0:**
+   - Edita el archivo `src/main/resources/application.properties` con los datos de tu aplicación Auth0 (dominio, clientId, clientSecret, etc).
+3. **Compilar el proyecto:**
+   ```bash
+   ./mvnw clean install
+   ```
+4. **Ejecutar la aplicación:**
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+5. **Acceder a la API:**
+   - La API estará disponible en `http://localhost:8080`
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Spring Boot**: Framework principal
+- **Spring Security**: Seguridad y autenticación
+- **Auth0**: Proveedor de identidad
+- **OAuth2**: Protocolo de autorización
+- **JWT**: Tokens de autenticación
+
+---
 
 ## 🎬 Funcionalidades
 
 ### Para Todos los Usuarios (Público)
-- **Ver películas públicas**: Acceso a todas las películas públicas del catálogo
+- Ver el catálogo de películas públicas
 
 ### Para Usuarios Autenticados
-- **Lista privada personal**: Cada usuario tiene su propia lista de películas privadas
-- **Agregar películas públicas a lista privada**: Los usuarios pueden agregar películas del catálogo público a su lista personal
-- **Crear películas privadas**: Los usuarios pueden crear sus propias películas privadas
-- **Remover películas de lista privada**: Los usuarios pueden quitar películas de su lista personal
+- Ver su lista privada de películas (películas públicas agregadas a su lista)
+- Agregar películas públicas a su lista privada
+- Remover películas de su lista privada
 
 ### Para Administradores
-- **Crear películas públicas**: Solo los admins pueden agregar películas al catálogo público
-- **Ver todas las películas**: Acceso completo al catálogo (públicas y privadas)
-- **Gestionar usuarios**: Ver información de todos los usuarios registrados
+- Crear nuevas películas públicas
+- Ver todas las películas del sistema (públicas y privadas)
+- Actualizar películas existentes
+- Eliminar películas del sistema
 
 ## 🔐 Autenticación
 
 La aplicación usa Auth0 para la autenticación. Los endpoints están configurados de la siguiente manera:
 
 - **Públicos**: No requieren autenticación
-- **Privados**: Requieren autenticación de usuario
+- **Privados**: Requieren autenticación de usuario y rol de cliente
 - **Admin**: Requieren autenticación y rol de administrador
 
 ## 📋 Endpoints de la API
@@ -33,7 +78,7 @@ La aplicación usa Auth0 para la autenticación. Los endpoints están configurad
 #### GET `/public/peliculas`
 Obtiene todas las películas públicas del catálogo.
 
-**Respuesta:**
+**Ejemplo de respuesta:**
 ```json
 [
   {
@@ -49,65 +94,74 @@ Obtiene todas las películas públicas del catálogo.
 ]
 ```
 
-### Endpoints Privados (Requieren Autenticación)
+---
+
+### Endpoints Privados (Requieren autenticación y rol de cliente)
 
 #### GET `/private/peliculas`
-Obtiene las películas privadas del usuario autenticado (incluye películas creadas por el usuario y películas públicas agregadas a su lista personal).
+Obtiene las películas públicas que el usuario autenticado ha agregado a su lista privada.
+
+**Ejemplo de respuesta:**
+```json
+[
+  {
+    "id": 2,
+    "titulo": "Inception",
+    "director": "Christopher Nolan",
+    "año": 2010,
+    "genero": "Ciencia Ficción",
+    "descripcion": "Un ladrón que roba secretos a través de la tecnología de los sueños",
+    "propietario": null,
+    "esPublica": true
+  }
+]
+```
 
 #### POST `/private/peliculas/agregar/{peliculaId}`
-Agrega una película pública a la lista privada del usuario.
+Agrega una película pública a la lista privada del usuario autenticado.
+- Parámetro: `peliculaId` (ID de la película pública)
 
-**Parámetros:**
-- `peliculaId`: ID de la película pública a agregar
-
-**Respuesta:**
+**Ejemplo de respuesta exitosa:**
 ```json
 {
   "mensaje": "Película agregada a tu lista privada exitosamente",
-  "peliculaId": 1
+  "peliculaId": 2
+}
+```
+
+**Ejemplo de error:**
+```json
+{
+  "error": "La película no existe"
 }
 ```
 
 #### DELETE `/private/peliculas/remover/{peliculaId}`
-Remueve una película de la lista privada del usuario.
+Remueve una película de la lista privada del usuario autenticado.
+- Parámetro: `peliculaId` (ID de la película a remover)
 
-**Parámetros:**
-- `peliculaId`: ID de la película a remover
-
-#### POST `/private/peliculas/crear`
-Crea una nueva película privada para el usuario.
-
-**Body:**
+**Ejemplo de respuesta exitosa:**
 ```json
 {
-  "titulo": "Mi Película Favorita",
-  "director": "Director Famoso",
-  "año": 2023,
-  "genero": "Drama",
-  "descripcion": "Una película muy especial para mí"
+  "mensaje": "Película removida de tu lista privada exitosamente",
+  "peliculaId": 2
 }
 ```
 
-#### GET `/private/usuario`
-Obtiene información del usuario autenticado.
-
-**Respuesta:**
+**Ejemplo de error:**
 ```json
 {
-  "email": "usuario@example.com",
-  "nombre": "Usuario Demo",
-  "roles": ["USER"],
-  "esAdmin": false,
-  "cantidadPeliculasPrivadas": 3
+  "error": "No se pudo remover la película"
 }
 ```
 
-### Endpoints de Administrador
+---
+
+### Endpoints de Administrador (Requieren autenticación y rol de administrador)
 
 #### POST `/admin/peliculas`
-Crea una nueva película pública (solo para administradores).
-
-**Body:**
+Crea una nueva película pública.
+- Body:
 ```json
 {
   "titulo": "Nueva Película",
@@ -119,65 +173,97 @@ Crea una nueva película pública (solo para administradores).
 }
 ```
 
+**Ejemplo de respuesta:**
+```json
+{
+  "mensaje": "Película creada exitosamente",
+  "pelicula": {
+    "id": 6,
+    "titulo": "Nueva Película",
+    "director": "Director Famoso",
+    "año": 2024,
+    "genero": "Acción",
+    "descripcion": "Una película épica",
+    "propietario": null,
+    "esPublica": true
+  }
+}
+```
+
 #### GET `/admin/peliculas`
 Obtiene todas las películas del sistema (públicas y privadas).
 
-#### GET `/admin/usuarios`
-Obtiene información de todos los usuarios registrados.
+**Ejemplo de respuesta:**
+```json
+[
+  {
+    "id": 1,
+    "titulo": "El Padrino",
+    "director": "Francis Ford Coppola",
+    "año": 1972,
+    "genero": "Drama",
+    "descripcion": "Una saga familiar épica sobre el crimen organizado",
+    "propietario": null,
+    "esPublica": true
+  },
+  // ... otras películas ...
+]
+```
 
-## 🚀 Cómo Usar
+#### PUT `/admin/peliculas/{id}`
+Actualiza una película existente.
+- Parámetro: `id` (ID de la película a actualizar)
+- Body:
+```json
+{
+  "titulo": "Película Actualizada",
+  "director": "Nuevo Director",
+  "año": 2022,
+  "genero": "Drama",
+  "descripcion": "Descripción actualizada",
+  "esPublica": true
+}
+```
 
-### 1. Configuración de Auth0
+**Ejemplo de respuesta:**
+```json
+{
+  "mensaje": "Película actualizada exitosamente",
+  "pelicula": {
+    "id": 1,
+    "titulo": "Película Actualizada",
+    "director": "Nuevo Director",
+    "año": 2022,
+    "genero": "Drama",
+    "descripcion": "Descripción actualizada",
+    "propietario": null,
+    "esPublica": true
+  }
+}
+```
 
-Asegúrate de que tu aplicación Auth0 esté configurada correctamente en `application.properties`.
+**Ejemplo de error:**
+```json
+{
+  "error": "Película no encontrada"
+}
+```
 
-### 2. Usuarios de Prueba
+#### DELETE `/admin/peliculas/{id}`
+Elimina una película del sistema.
+- Parámetro: `id` (ID de la película a eliminar)
 
-El sistema incluye usuarios de ejemplo:
-- **Admin**: `admin@example.com` (rol: ADMIN)
-- **Usuario**: `user@example.com` (rol: USER)
+**Ejemplo de respuesta exitosa:**
+```json
+{
+  "mensaje": "Película eliminada exitosamente",
+  "peliculaId": 1
+}
+```
 
-### 3. Flujo de Uso Típico
-
-1. **Usuario normal**:
-   - Ve películas públicas en `/public/peliculas`
-   - Agrega películas públicas a su lista privada con `POST /private/peliculas/agregar/{id}`
-   - Crea películas privadas con `POST /private/peliculas/crear`
-   - Ve su lista privada en `GET /private/peliculas`
-
-2. **Administrador**:
-   - Tiene acceso a todas las funcionalidades de usuario
-   - Puede crear películas públicas con `POST /admin/peliculas`
-   - Puede ver todas las películas con `GET /admin/peliculas`
-   - Puede ver todos los usuarios con `GET /admin/usuarios`
-
-## 🔧 Tecnologías
-
-- **Spring Boot**: Framework principal
-- **Spring Security**: Seguridad y autenticación
-- **Auth0**: Proveedor de identidad
-- **OAuth2**: Protocolo de autorización
-- **JWT**: Tokens de autenticación
-
-## 📝 Notas Importantes
-
-- Las películas públicas son visibles para todos los usuarios
-- Las películas privadas solo son visibles para su propietario
-- Los usuarios pueden agregar películas públicas a su lista privada sin modificar la película original
-- Solo los administradores pueden crear películas públicas
-- Todos los usuarios autenticados pueden crear películas privadas
-
-## 🐛 Solución de Problemas
-
-### Error de Autenticación
-- Verifica que tu token de Auth0 sea válido
-- Asegúrate de estar autenticado para endpoints privados
-
-### Error de Autorización
-- Verifica que tengas el rol correcto para endpoints de administrador
-- Los roles se asignan automáticamente: nuevos usuarios tienen rol "USER"
-
-### Error de Validación
-- Asegúrate de que todos los campos requeridos estén presentes
-- El año debe ser mayor o igual a 1888
-- El título y director son obligatorios 
+**Ejemplo de error:**
+```json
+{
+  "error": "Película no encontrada"
+}
+```

@@ -1,4 +1,4 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +7,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import com.jff.auth0demo.dto.ActualizarPeliculaRequest;
+import com.jff.auth0demo.dto.CrearPeliculaRequest;
+import com.jff.auth0demo.model.Pelicula;
+import com.jff.auth0demo.service.PeliculaService;
+import com.jff.auth0demo.service.UsuarioService;
 
 import java.util.List;
 import java.util.Map;
@@ -21,21 +27,6 @@ public class HelloController {
     @Autowired
     private UsuarioService usuarioService;
 
-    @GetMapping("/")
-    public String hello() {
-        return "¡Bienvenido a la API de Películas! 🎬";
-    }
-
-    @GetMapping("/public")
-    public String publicEndpoint() {
-        return "Este es un endpoint público 🌐";
-    }
-
-    @GetMapping("/private")
-    public String privateEndpoint() {
-        return "Este es un endpoint protegido 🔐";
-    }
-
     // ==================== ENDPOINTS DE PELÍCULAS ====================
 
     /**
@@ -48,30 +39,32 @@ public class HelloController {
     }
 
     /**
-     * Endpoint privado que muestra las películas privadas del usuario autenticado
+     * Endpoint privado que muestra las películas públicas que el usuario ha agregado a su lista privada
      */
     @GetMapping("/private/peliculas")
-    public ResponseEntity<List<Pelicula>> obtenerPeliculasPrivadas(@AuthenticationPrincipal OAuth2User principal) {
-        String userEmail = obtenerEmailUsuario(principal);
+    public ResponseEntity<List<Pelicula>> obtenerPeliculasPrivadas(@AuthenticationPrincipal Object principal) {
+        String userEmail;
+        String nombre;
+        
+        if (principal instanceof OAuth2User) {
+            OAuth2User oauth2User = (OAuth2User) principal;
+            userEmail = obtenerEmailUsuario(oauth2User);
+            nombre = oauth2User.getAttribute("name");
+            if (nombre == null) nombre = userEmail;
+        } else if (principal instanceof Jwt) {
+            Jwt jwt = (Jwt) principal;
+            userEmail = jwt.getClaimAsString("email");
+            if (userEmail == null) {
+                userEmail = jwt.getSubject();
+            }
+            nombre = jwt.getClaimAsString("name");
+            if (nombre == null) nombre = userEmail;
+        } else {
+            throw new RuntimeException("Tipo de autenticación no soportado");
+        }
         
         // Crear o obtener el usuario
-        String nombre = principal.getAttribute("name");
-        if (nombre == null) nombre = userEmail;
         usuarioService.obtenerOCrearUsuario(userEmail, nombre);
-        
-        List<Pelicula> peliculasPrivadas = peliculaService.obtenerPeliculasPrivadasDelUsuario(userEmail);
-        return ResponseEntity.ok(peliculasPrivadas);
-    }
-
-    /**
-     * Endpoint alternativo para JWT (resource server)
-     */
-    @GetMapping("/private/peliculas-jwt")
-    public ResponseEntity<List<Pelicula>> obtenerPeliculasPrivadasJwt(@AuthenticationPrincipal Jwt jwt) {
-        String userEmail = jwt.getClaimAsString("email");
-        if (userEmail == null) {
-            userEmail = jwt.getSubject();
-        }
         
         List<Pelicula> peliculasPrivadas = peliculaService.obtenerPeliculasPrivadasDelUsuario(userEmail);
         return ResponseEntity.ok(peliculasPrivadas);
@@ -82,8 +75,30 @@ public class HelloController {
      */
     @PostMapping("/private/peliculas/agregar/{peliculaId}")
     public ResponseEntity<Map<String, Object>> agregarPeliculaPrivada(@PathVariable Long peliculaId, 
-                                                                     @AuthenticationPrincipal OAuth2User principal) {
-        String userEmail = obtenerEmailUsuario(principal);
+                                                                     @AuthenticationPrincipal Object principal) {
+        String userEmail;
+        String nombre;
+        
+        if (principal instanceof OAuth2User) {
+            OAuth2User oauth2User = (OAuth2User) principal;
+            userEmail = obtenerEmailUsuario(oauth2User);
+            nombre = oauth2User.getAttribute("name");
+            if (nombre == null) nombre = userEmail;
+        } else if (principal instanceof Jwt) {
+            Jwt jwt = (Jwt) principal;
+            userEmail = jwt.getClaimAsString("email");
+            if (userEmail == null) {
+                userEmail = jwt.getSubject();
+            }
+            nombre = jwt.getClaimAsString("name");
+            if (nombre == null) nombre = userEmail;
+        } else {
+            throw new RuntimeException("Tipo de autenticación no soportado");
+        }
+        
+        // Crear o obtener el usuario
+        usuarioService.obtenerOCrearUsuario(userEmail, nombre);
+        
         Map<String, Object> respuesta = new HashMap<>();
         
         // Verificar que la película existe y es pública
@@ -115,8 +130,30 @@ public class HelloController {
      */
     @DeleteMapping("/private/peliculas/remover/{peliculaId}")
     public ResponseEntity<Map<String, Object>> removerPeliculaPrivada(@PathVariable Long peliculaId, 
-                                                                     @AuthenticationPrincipal OAuth2User principal) {
-        String userEmail = obtenerEmailUsuario(principal);
+                                                                     @AuthenticationPrincipal Object principal) {
+        String userEmail;
+        String nombre;
+        
+        if (principal instanceof OAuth2User) {
+            OAuth2User oauth2User = (OAuth2User) principal;
+            userEmail = obtenerEmailUsuario(oauth2User);
+            nombre = oauth2User.getAttribute("name");
+            if (nombre == null) nombre = userEmail;
+        } else if (principal instanceof Jwt) {
+            Jwt jwt = (Jwt) principal;
+            userEmail = jwt.getClaimAsString("email");
+            if (userEmail == null) {
+                userEmail = jwt.getSubject();
+            }
+            nombre = jwt.getClaimAsString("name");
+            if (nombre == null) nombre = userEmail;
+        } else {
+            throw new RuntimeException("Tipo de autenticación no soportado");
+        }
+        
+        // Crear o obtener el usuario
+        usuarioService.obtenerOCrearUsuario(userEmail, nombre);
+        
         Map<String, Object> respuesta = new HashMap<>();
         
         boolean removido = usuarioService.removerPeliculaPrivada(userEmail, peliculaId);
@@ -163,7 +200,7 @@ public class HelloController {
             request.getAño(),
             request.getGenero() != null ? request.getGenero() : "Sin género",
             request.getDescripcion() != null ? request.getDescripcion() : "Sin descripción",
-            null, // Propietario null para películas públicas
+            null, // Propietario null para películas del admin
             request.isEsPublica()
         );
         
@@ -185,23 +222,19 @@ public class HelloController {
     }
 
     /**
-     * Endpoint para admin ver todos los usuarios
+     * Endpoint para admin actualizar una película
      */
-    @GetMapping("/admin/usuarios")
+    @PutMapping("/admin/peliculas/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_admin')")
-    public ResponseEntity<List<Usuario>> obtenerTodosLosUsuarios() {
-        List<Usuario> usuarios = usuarioService.obtenerTodosLosUsuarios();
-        return ResponseEntity.ok(usuarios);
-    }
-
-    /**
-     * Endpoint para que cualquier usuario autenticado cree una película privada
-     */
-    @PostMapping("/private/peliculas/crear")
-    public ResponseEntity<Map<String, Object>> crearPeliculaPrivada(@RequestBody CrearPeliculaRequest request, 
-                                                                   @AuthenticationPrincipal OAuth2User principal) {
-        String userEmail = obtenerEmailUsuario(principal);
+    public ResponseEntity<Map<String, Object>> actualizarPelicula(@PathVariable Long id, 
+                                                                 @RequestBody ActualizarPeliculaRequest request) {
         Map<String, Object> respuesta = new HashMap<>();
+        
+        // Validar que la película existe
+        if (!peliculaService.peliculaExiste(id)) {
+            respuesta.put("error", "Película no encontrada");
+            return ResponseEntity.notFound().build();
+        }
         
         // Validar datos requeridos
         if (request.getTitulo() == null || request.getTitulo().trim().isEmpty()) {
@@ -219,44 +252,46 @@ public class HelloController {
             return ResponseEntity.badRequest().body(respuesta);
         }
         
-        // Crear la película privada
-        Pelicula nuevaPelicula = new Pelicula(
-            null, // ID se asignará automáticamente
+        // Crear objeto película con los datos actualizados
+        Pelicula peliculaActualizada = new Pelicula(
+            id,
             request.getTitulo(),
             request.getDirector(),
             request.getAño(),
-            request.getGenero() != null ? request.getGenero() : "Personal",
-            request.getDescripcion() != null ? request.getDescripcion() : "Película personal",
-            userEmail, // Propietario es el usuario actual
-            false // Siempre privada
+            request.getGenero() != null ? request.getGenero() : "Sin género",
+            request.getDescripcion() != null ? request.getDescripcion() : "Sin descripción",
+            null, // Propietario null para películas del admin
+            request.getEsPublica() != null ? request.getEsPublica() : true
         );
         
-        Pelicula peliculaCreada = peliculaService.crearPelicula(nuevaPelicula);
-        
-        respuesta.put("mensaje", "Película privada creada exitosamente");
-        respuesta.put("pelicula", peliculaCreada);
-        return ResponseEntity.ok(respuesta);
+        try {
+            Pelicula peliculaActualizadaResult = peliculaService.actualizarPelicula(id, peliculaActualizada);
+            respuesta.put("mensaje", "Película actualizada exitosamente");
+            respuesta.put("pelicula", peliculaActualizadaResult);
+            return ResponseEntity.ok(respuesta);
+        } catch (RuntimeException e) {
+            respuesta.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(respuesta);
+        }
     }
 
     /**
-     * Endpoint para obtener información del usuario actual
+     * Endpoint para admin eliminar una película
      */
-    @GetMapping("/private/usuario")
-    public ResponseEntity<Map<String, Object>> obtenerInfoUsuario(@AuthenticationPrincipal OAuth2User principal) {
-        String userEmail = obtenerEmailUsuario(principal);
-        String nombre = principal.getAttribute("name");
-        if (nombre == null) nombre = userEmail;
+    @DeleteMapping("/admin/peliculas/{id}")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('SCOPE_admin')")
+    public ResponseEntity<Map<String, Object>> eliminarPelicula(@PathVariable Long id) {
+        Map<String, Object> respuesta = new HashMap<>();
         
-        Usuario usuario = usuarioService.obtenerOCrearUsuario(userEmail, nombre);
-        
-        Map<String, Object> info = new HashMap<>();
-        info.put("email", userEmail);
-        info.put("nombre", nombre);
-        info.put("roles", usuario.getRoles());
-        info.put("esAdmin", usuario.esAdmin());
-        info.put("cantidadPeliculasPrivadas", usuario.getPeliculasPrivadasIds().size());
-        
-        return ResponseEntity.ok(info);
+        boolean eliminada = peliculaService.eliminarPelicula(id);
+        if (eliminada) {
+            respuesta.put("mensaje", "Película eliminada exitosamente");
+            respuesta.put("peliculaId", id);
+            return ResponseEntity.ok(respuesta);
+        } else {
+            respuesta.put("error", "Película no encontrada");
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // Método auxiliar para obtener el email del usuario

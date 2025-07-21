@@ -1,4 +1,4 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.model;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ public class Usuario {
         this.peliculasPrivadasIds = new ArrayList<>();
     }
 
-    // Getters y Setters
+    // Getters y Setters no usados por el momentos
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
@@ -53,9 +53,5 @@ public class Usuario {
 
     public void removerPeliculaPrivada(Long peliculaId) {
         peliculasPrivadasIds.remove(peliculaId);
-    }
-
-    public boolean tienePeliculaPrivada(Long peliculaId) {
-        return peliculasPrivadasIds.contains(peliculaId);
     }
 } 

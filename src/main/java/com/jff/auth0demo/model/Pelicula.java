@@ -1,4 +1,4 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.model;
 
 public class Pelicula {
     private Long id;

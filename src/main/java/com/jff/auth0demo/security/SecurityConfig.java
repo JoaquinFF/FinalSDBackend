@@ -1,4 +1,4 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -6,12 +6,17 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 @Configuration
@@ -26,18 +31,48 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos - no requieren autenticación
                         .requestMatchers("/public", "/public/**").permitAll()
-                        // Endpoints de admin - requieren autenticación y autorización específica
-                        .requestMatchers("/admin/**").authenticated()
-                        // Endpoints privados - requieren autenticación
-                        .requestMatchers("/private/**").authenticated()
+                        // Endpoints de admin - requieren rol ADMIN
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Endpoints privados - requieren rol CLIENTE o ADMIN
+                        .requestMatchers("/private/**").hasAnyRole("CLIENTE", "ADMIN")
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(Customizer.withDefaults())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-                // Deshabilitar CSRF para permitir POST requests (útil para APIs)
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                )
                 .csrf(csrf -> csrf.disable());
         return http.build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Collection<GrantedAuthority> authorities = new ArrayList<>();
+            
+            // Buscar roles en el claim específico de Auth0
+            String rolesClaimName = "https://hola/roles";
+            Object rolesClaim = jwt.getClaim(rolesClaimName);
+            
+            if (rolesClaim != null) {
+                if (rolesClaim instanceof List) {
+                    List<?> roles = (List<?>) rolesClaim;
+                    for (Object role : roles) {
+                        String roleString = role.toString().toUpperCase();
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + roleString));
+                    }
+                } else if (rolesClaim instanceof String) {
+                    String roleString = rolesClaim.toString().toUpperCase();
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + roleString));
+                }
+            }
+            
+            return authorities;
+        });
+        
+        return jwtAuthenticationConverter;
     }
 
     @Bean

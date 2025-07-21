@@ -1,18 +1,18 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.dto;
 
-public class CrearPeliculaRequest {
+public class ActualizarPeliculaRequest {
     private String titulo;
     private String director;
     private Integer año;
     private String genero;
     private String descripcion;
-    private boolean esPublica = true; // Por defecto es pública
+    private Boolean esPublica;
 
     // Constructor vacío
-    public CrearPeliculaRequest() {}
+    public ActualizarPeliculaRequest() {}
 
     // Constructor
-    public CrearPeliculaRequest(String titulo, String director, Integer año, String genero, String descripcion, boolean esPublica) {
+    public ActualizarPeliculaRequest(String titulo, String director, Integer año, String genero, String descripcion, Boolean esPublica) {
         this.titulo = titulo;
         this.director = director;
         this.año = año;
@@ -62,11 +62,11 @@ public class CrearPeliculaRequest {
         this.descripcion = descripcion;
     }
 
-    public boolean isEsPublica() {
+    public Boolean getEsPublica() {
         return esPublica;
     }
 
-    public void setEsPublica(boolean esPublica) {
+    public void setEsPublica(Boolean esPublica) {
         this.esPublica = esPublica;
     }
 } 

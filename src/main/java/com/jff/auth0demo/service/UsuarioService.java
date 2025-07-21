@@ -1,6 +1,9 @@
-package com.jff.auth0demo;
+package com.jff.auth0demo.service;
 
 import org.springframework.stereotype.Service;
+
+import com.jff.auth0demo.model.Usuario;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,22 +41,6 @@ public class UsuarioService {
     }
 
     /**
-     * Verifica si un usuario tiene un rol específico
-     */
-    public boolean usuarioTieneRol(String email, String rol) {
-        Usuario usuario = obtenerUsuario(email);
-        return usuario != null && usuario.tieneRol(rol);
-    }
-
-    /**
-     * Verifica si un usuario es admin
-     */
-    public boolean usuarioEsAdmin(String email) {
-        Usuario usuario = obtenerUsuario(email);
-        return usuario != null && usuario.esAdmin();
-    }
-
-    /**
      * Agrega una película pública a la lista privada de un usuario
      */
     public boolean agregarPeliculaPrivada(String email, Long peliculaId) {
@@ -83,12 +70,5 @@ public class UsuarioService {
     public List<Long> obtenerPeliculasPrivadasIds(String email) {
         Usuario usuario = obtenerUsuario(email);
         return usuario != null ? new ArrayList<>(usuario.getPeliculasPrivadasIds()) : new ArrayList<>();
-    }
-
-    /**
-     * Obtiene todos los usuarios (solo para admin)
-     */
-    public List<Usuario> obtenerTodosLosUsuarios() {
-        return new ArrayList<>(usuarios.values());
     }
 } 
